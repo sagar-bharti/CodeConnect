@@ -1,0 +1,5 @@
+import {Router} from 'express';import {auth} from '../middleware/auth.js';import User from '../models/User.js';import Submission from '../models/Submission.js';import Post from '../models/Post.js';
+const router=Router();
+router.get('/me',auth,async(req,res)=>{const [submissions,posts,users]=await Promise.all([Submission.find({user:req.user._id}).populate('problem','title difficulty').sort({createdAt:-1}).limit(20),Post.countDocuments({author:req.user._id}),User.find().select('username solvedProblems contributionPoints').lean()]);const accepted=submissions.filter(s=>s.status==='Accepted').length;res.json({stats:{solved:req.user.solvedProblems.length,submissions:await Submission.countDocuments({user:req.user._id}),contributions:posts,points:req.user.contributionPoints,accepted},submissions,topicProgress:[],});});
+router.get('/leaderboard',async(req,res)=>{const users=await User.find().select('username solvedProblems contributionPoints').sort({contributionPoints:-1}).limit(20).lean();res.json(users.map((u,i)=>({rank:i+1,username:u.username,solved:u.solvedProblems.length,points:u.contributionPoints})));});
+export default router;

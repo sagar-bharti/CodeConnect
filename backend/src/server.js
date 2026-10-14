@@ -1,0 +1,6 @@
+import 'dotenv/config';import express from 'express';import cors from 'cors';import mongoose from 'mongoose';import rateLimit from 'express-rate-limit';
+import authRoutes from './routes/auth.js';import problemRoutes from './routes/problems.js';import postRoutes from './routes/posts.js';import dashboardRoutes from './routes/dashboard.js';import assistantRoutes from './routes/assistant.js';
+const app=express();app.use(cors({origin:process.env.CLIENT_URL||'http://localhost:5173'}));app.use(express.json({limit:'1mb'}));app.use('/api/',rateLimit({windowMs:60_000,max:120,standardHeaders:true,legacyHeaders:false}));
+app.get('/api/health',(req,res)=>res.json({status:'ok',service:'CodeConnect API'}));app.use('/api/auth',authRoutes);app.use('/api/problems',problemRoutes);app.use('/api/posts',postRoutes);app.use('/api/dashboard',dashboardRoutes);app.use('/api/assistant',assistantRoutes);
+app.use((req,res)=>res.status(404).json({message:'API route not found.'}));
+const port=process.env.PORT||5000;mongoose.connect(process.env.MONGODB_URI||'mongodb://127.0.0.1:27017/codeconnect').then(()=>{app.listen(port,()=>console.log(`CodeConnect API running on http://localhost:${port}`));}).catch(err=>{console.error('MongoDB connection failed:',err.message);process.exit(1);});

@@ -1,0 +1,11 @@
+import {Router} from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+import {auth} from '../middleware/auth.js';
+const router=Router();
+const safeUser=u=>({id:u._id,username:u.username,email:u.email,solvedCount:u.solvedProblems?.length||0,contributionPoints:u.contributionPoints||0});
+router.post('/register',async(req,res)=>{try{const {username,email,password}=req.body;if(!username||!email||!password)return res.status(400).json({message:'Username, email and password are required.'});if(password.length<8)return res.status(400).json({message:'Password must contain at least 8 characters.'});if(await User.findOne({email:email.toLowerCase()}))return res.status(409).json({message:'An account with this email already exists.'});const passwordHash=await bcrypt.hash(password,12);const user=await User.create({username,email,passwordHash});const token=jwt.sign({id:user._id},process.env.JWT_SECRET,{expiresIn:'7d'});res.status(201).json({token,user:safeUser(user)});}catch(e){res.status(500).json({message:'Could not create account.'});}});
+router.post('/login',async(req,res)=>{try{const {email,password}=req.body;const user=await User.findOne({email:(email||'').toLowerCase()});if(!user||!await bcrypt.compare(password||'',user.passwordHash))return res.status(401).json({message:'Invalid email or password.'});const token=jwt.sign({id:user._id},process.env.JWT_SECRET,{expiresIn:'7d'});res.json({token,user:safeUser(user)});}catch{res.status(500).json({message:'Could not log in.'});}});
+router.get('/me',auth,(req,res)=>res.json({user:safeUser(req.user)}));
+export default router;

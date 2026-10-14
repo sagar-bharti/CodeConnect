@@ -1,0 +1,4 @@
+import {Router} from 'express';import {GoogleGenerativeAI} from '@google/generative-ai';import {auth} from '../middleware/auth.js';
+const router=Router();
+router.post('/',auth,async(req,res)=>{try{if(!process.env.GEMINI_API_KEY)return res.status(503).json({message:'AI assistant is not configured. Add GEMINI_API_KEY to backend/.env.'});const {prompt,code='',language='JavaScript'}=req.body;if(!prompt?.trim())return res.status(400).json({message:'Enter a question first.'});const ai=new GoogleGenerativeAI(process.env.GEMINI_API_KEY);const model=ai.getGenerativeModel({model:'gemini-2.0-flash'});const result=await model.generateContent(`You are CodeConnect's coding tutor. Give clear, educational hints and explanations; do not claim code was executed. Language: ${language}\nCode:\n${code}\nStudent question: ${prompt}`);res.json({answer:result.response.text()});}catch{res.status(502).json({message:'AI assistant is temporarily unavailable.'});}});
+export default router;
